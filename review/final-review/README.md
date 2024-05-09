@@ -51,7 +51,7 @@ Rust’s Ownership rules:
     		let c = b; // c is owner
     	}
     }
-    // no owner, because c is out of scope
+    // no owner, because c is out of scope. value is dropped
     ```
     
 
@@ -65,25 +65,27 @@ Rules of Borrowing:
 - One of the following (NOT both) must be true:
     - you can have any number of *immutable* references
     - you can have *one* mutable reference
+    - **CAN'T HAVE BOTH**
 - Examples
     
     ```rust
     let x = String::from("Hello");
     {
     	let y = &x; // temporarily borrows (immutable reference)
-    	println!("can use {} and {}", x, y);
+    	println!("can use {} and {}", x, y);i
     }
     // y now out of scope
     println!("can use {}", x);
     ```
     
     ```rust
+    // same thing but using a function instead of a codeblock
     fn main() {
     	let x = String::from("Hello");
     	let y = get_len(&x); //function borrows x's value
     	println!("{} has length {}", x, y); // then returns value to x
     }
-    
+    // doesn't make sense to permanently transfer ownership because you are just getting the length
     fn get_len(a: &String) -> usize {
     	a.len()
     }
@@ -124,11 +126,13 @@ The goal of lifetimes is to prevent *dangling pointers*, an issue we saw often i
             println!("r: {}", r); //   |       |
                                   // --+       |
         }                         // ----------+
+        // we can print x's value in the above function 
         ```
         
 - If we want a value to live longer, we can use *lifetime annotations*
     
     ```rust
+    // we want both x and y to last the entire length of the function because we aren't sure which one we are going to return. 
     fn longest<'a>(x: &'a str, y: &'a str) -> &'a str {
         if x.len() > y.len() {
             x
@@ -142,6 +146,7 @@ The goal of lifetimes is to prevent *dangling pointers*, an issue we saw often i
 **Smart Pointers:**
 
 Act like Pointers in C, but with extra meta-data. Usually, they own the data they point to (distinct from borrowing)
+Technically, strings are already an example of smart pointers because string values live on the heap and not on the stack
 
 Implement the `Drop` and `Deref` traits
 
@@ -194,6 +199,7 @@ Implement the `Drop` and `Deref` traits
 - **Reference Counters**
     - `Rc<T>`
     - Allows a single value to have multiple owners. Only when the last owner’s lifetime ends is the value dropped.
+    - Think one person watching tv (he owns tv) and then more people come in and watch and now they all own tv. Even though original person leaves and stops watching tv, other people still own tv and tv is not turned off. Last person to watch turns off tv while leaving. 
     - Examples:
         - Using the same linked list structure as the Boxes example:
         
@@ -210,13 +216,136 @@ Implement the `Drop` and `Deref` traits
             let a = Rc::new(Cons(5, Rc::new(Cons(10, Rc::new(Nil)))));
             let b = Cons(3, Rc::clone(&a));
             let c = Cons(4, Rc::clone(&a));
+            // even if a goes out of scope, b and c still have access to what was assigned to a
         }
         ```
         
         - `Rc::clone` does not perform a deep copy like a.clone() might. It increments the reference counter to that piece of data.
         - We can call `Rc::strong_count(&a)` to see this reference counter!
+    
+- **Miscellaneous** 
+    - this segment **will work** since there is only one mutable reference
+    ```rust
+    fn main() {
+        let mut x = String::from("hello");
+
+        let y = &mut x; 
+        y.push_str(" World");
+
+        print!("{}", y);
+    }
+    ```
+    - this segment **will work** since there is only one mutable reference and we are not doing any operations on x while borrowed (not modifying)
+    ```rust 
+    fn main() {
+        let mut x = String::from("hello");
+
+        let y = &mut x; 
+        y.push_str(" World");
+     
+
+        print!("{}", y);
+        print!("{}", x);
+    }
+    ```
+    - this segment **will not work** because we cannot borrow `x` as immutable because it is also borrowed as mutable
+  |
+5 |         let y = &mut x; 
+  |                 ------ mutable borrow occurs here
+...
+8 |         print!("{}", x);
+  |                      ^ immutable borrow occurs here
+9 |         print!("{}", y);
+  |                      - mutable borrow later used here
+   - **This violates the rule of having BOTH a mutable reference and one or more immutable references as we can only one or the other, not both**
+    ```rust 
+    fn main() {
+        let mut x = String::from("hello");
+
+        let y = &mut x; 
+        y.push_str(" World");
+     
+        print!("{}", x);
+        print!("{}", y);
+    }
+    ```
+    - this segment **will not work** since there is only one mutable reference but x is trying to modify it when ownership has been borrowed
+    - once y's lifetime ends, only then will x be able to do operations such as print or push_str 
+    ```rust 
+    fn main() {
+        let mut x = String::from("hello");
+
+        let y = &mut x; 
+        y.push_str(" World");
+        // this line will cause error
+        x.push_str( "World");
+
+        print!("{}", y);
+        print!("{}", x);
+    }
+    ```
+
+    - this segment will **not work either ** and will cause problems since there is more than one mutable reference
+    ```rust 
+     fn main() {
+        let mut x = String::from("hello");
+
+        let y = &mut x; 
+        //notice here c is trying to borrow it again. this will cause issues 
+        let c = &mut x;
+        y.push_str(" World");
+
+        print!("{}", y);
+    }
+    ```
+
+
+    
 
 ## Lambda Calculus
+- **Language**
+    - e -> | x (a value)
+           | λ x. e (a function)
+           | e e (an application)
+- Turing Complete 
+- **Scoping**
+    - λx.λy. x y -> λx. (λy.(x y))
+    - λx.(x a b (λy.y) z λz.(z))
+- **Evaluating**
+    - (λx. e1) e2
+        - in the above, e is (λx. e1) and e' is e2 
+        - we substitute in e2 for x and evaluate it in e1 
+    - (λx.λy.λz.x z) a 
+        - this evaluates to λy.λz.a z 
+        - this i sbecause we take the a and substitute it in for x inside the body of the λx
+        - similar to 
+        ```OCaml 
+        (fun x -> fun y -> fun z -> x z) a
+        ``` 
+            which goes to 
+        ```OCaml 
+        fun y -> fun z -> a z
+        ```
+- Call by name (***Lazy evaluation***): Don't simplify the argument 
+    - (λy.y a) ((λz.x (λy.y)) x)
+        - pass the entire second expression into y
+        - so for our next step we get 
+            (((λz.x (λy.y)) x) a)
+- Call by value (***Eager evaluation***): Simplify the argument first
+    - (λy.y a) ((λz.x (λy.y)) x)
+        - pass x into z in the argument of the overall expression 
+        - so for our next step, we get 
+            (λy.y a) (x (λy.y))
+- Remember, we can get the same thing bakc from both lazy and eager evaluation, but we may not always get the same value back 
+    - In essence, Lazy and Eager evaluation **do not always** return the same value back
+- Beta Normal Form: can't reduce any further 
+- Renaming Bound Variables:
+    - Variables that get replaced: 
+    (λ**x**. **x** (λ***y***. ***y*** z)) 
+    - x and y above get replaced with each others various respective x and y's
+    - REMEMBER, YOU ***CANNOT*** rename **free** variables. 
+    - You ***can only*** rename **bound** variables
+    
 
 ## Operational Semantics & Type Checking
 
