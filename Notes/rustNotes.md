@@ -229,8 +229,8 @@
     let y = nums[i]; //fails (panics) at run-time as i is out of bounds? 
     ```
 
-- Iteratin 
-    - Rust provides a way to iterate over a collectio 
+- Iterating 
+    - Rust provides a way to iterate over a collection
         - Including arrays 
         ```rust 
         let a = [10,20,30,40,50];
