@@ -1,5 +1,5 @@
 # Final Review Session
-
+[Zoom Recording](https://umd.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=1eef635f-86cc-4675-863e-b16b003ff2e2)
 ## RUST
 
 ### [Cliff’s Notes](https://bakalian.cs.umd.edu/assets/notes/rust.pdf) & [Rust Book](https://doc.rust-lang.org/book/title-page.html)
@@ -422,3 +422,38 @@ Implement the `Drop` and `Deref` traits
 - Problems!
     -Here's a solution doc link to the problems we will be discussing during the review session! **Please don't make any edits to the document since they will be reflected in the document for everyone else** --> https://share.goodnotes.com/s/ts1aGyPcLJkBMajqEdTBqy
 ## PL Concepts & OCaml Typing
+
+Functional programming aims to bring programming as close to math as possible. Do everything by applying and composing functions
+rather than sequencing statements that update some state like imperative programming. Example: loops require updating the iteration
+variable state, so we replace it with recursion. Lambda calculus is the basis for many functional languages.
+
+Type inference is what OCaml and many functional languages do: given an expression, figure out a valid type. Type checking is given
+an expression (and sometimes the programmer-provided type annotation), figure out if the expression is valid according to the typing rules. Type checking can happen at compile-time (statically) or at runtime (dynamically).
+
+Expressions must have a value, statements do not necessarily (can be useful in other ways such as having side effects).
+
+Computational power: NFA/DFA < CFG < Lambda calc (most powerful, computationally equivalent to a Turing machine)
+
+Give the type of each of the following or if there is a type error.
+```ocaml
+let f g = (g 1, g "hi") in f (fun x -> x)
+
+let f p x y = map (p x) y
+
+fun x a -> x :: [x+1]::a
+
+fun x a -> (x a) :: a :: ["cmsc330"]
+
+let f = let m = ref 0 in fun n -> m := n; !m + n
+```
+
+Write an expression for each of the following types.
+```ocaml
+int -> string -> bool
+
+('a -> 'b) -> 'a -> 'c -> 'b
+
+'a -> 'a -> 'a
+
+('a * 'b) -> ('a -> 'b -> 'c) -> 'c -> bool list
+```
